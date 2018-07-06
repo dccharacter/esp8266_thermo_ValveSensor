@@ -28,7 +28,7 @@
 */
 #include<EthernetClient.h>
 #include <ESP8266WiFi.h>
-#include "settings.h"
+#include "config.h"
 
 WiFiClient client;
 
@@ -51,10 +51,10 @@ void setup() {
   pinMode(3, INPUT);
 
   //Serial.begin(9600);
-
+  
+  WiFi.persistent (true); //http://arduino-esp8266.readthedocs.io/en/latest/esp8266wifi/generic-class.html#persistent
   WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED) {    
     delay(500);
   }
 }
@@ -114,6 +114,14 @@ void httpRequest(String jsonBuffer) {
        "{\"write_api_key\":\"YOUR-CHANNEL-WRITEAPIKEY\",\"updates\":[{\"delta_t\":0,\"field1\":-60},{\"delta_t\":15,\"field1\":200},{\"delta_t\":15,\"field1\":-66}]
   */
   // Format the data buffer as noted above
+
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.reconnect();
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+    }
+  }
+  
   String data = "{\"write_api_key\":\"" + writeAPIKey + "\""; //Replace YOUR-CHANNEL-WRITEAPIKEY with your ThingSpeak channel write API key
   data += jsonBuffer;
   data += "}";
@@ -121,6 +129,7 @@ void httpRequest(String jsonBuffer) {
   client.stop();
   int data_length = data.length() + 1; //Compute the data buffer length
   // POST data to ThingSpeak
+ 
   if (client.connect(server, 80)) {
     client.println("POST /channels/" + channelID + "/bulk_update.json HTTP/1.1"); //Replace YOUR-CHANNEL-ID with your ThingSpeak channel ID
     client.println("Host: api.thingspeak.com");
